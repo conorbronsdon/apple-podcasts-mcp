@@ -5,7 +5,6 @@
 Owner-side Apple Podcasts analytics for AI agents: plays, followers, and per-episode listening, over the Apple Podcasts Connect Reporter protocol. Read-only.
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg?style=flat-square)](LICENSE)
-[![npm version](https://img.shields.io/npm/v/@conorbronsdon/apple-podcasts-mcp?style=flat-square)](https://www.npmjs.com/package/@conorbronsdon/apple-podcasts-mcp)
 [![Node](https://img.shields.io/badge/Node-20.19+-339933?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org/)
 [![Podcast](https://img.shields.io/badge/Podcast-Chain_of_Thought-purple?style=flat-square)](https://chainofthought.show/?utm_source=github&utm_medium=referral&utm_campaign=repo-readme&utm_content=apple-podcasts-mcp)
 [![X](https://img.shields.io/badge/X-@ConorBronsdon-black?style=flat-square&logo=x)](https://x.com/ConorBronsdon)
@@ -65,7 +64,18 @@ Apple's numbers are not headcounts. Podcasts Connect Analytics aggregates "liste
 2. Go to **Settings**. Your vendor number is there — digits only, something like `87654321`.
 3. On the same page, generate an **Access Token**. Copy the whole string; it is long and truncating it produces a confusing "invalid token" rather than an obvious paste error.
 
-### 2. Configure your MCP client
+### 2. Build it
+
+Not on npm yet. Clone and build, then point your client at the built entry point.
+
+```bash
+git clone https://github.com/conorbronsdon/apple-podcasts-mcp.git
+cd apple-podcasts-mcp
+npm install
+npm run build
+```
+
+### 3. Configure your MCP client
 
 #### Claude Code
 
@@ -75,8 +85,8 @@ Add to your `.mcp.json`:
 {
   "mcpServers": {
     "apple-podcasts": {
-      "command": "npx",
-      "args": ["-y", "@conorbronsdon/apple-podcasts-mcp"],
+      "command": "node",
+      "args": ["/absolute/path/to/apple-podcasts-mcp/dist/index.js"],
       "env": {
         "APPLE_PODCASTS_ACCESS_TOKEN": "your-access-token",
         "APPLE_PODCASTS_VENDOR_ID": "87654321"
@@ -92,14 +102,16 @@ Add to `~/.codex/config.toml`:
 
 ```toml
 [mcp_servers.apple-podcasts]
-command = "npx"
-args = ["-y", "@conorbronsdon/apple-podcasts-mcp"]
+command = "node"
+args = ["/absolute/path/to/apple-podcasts-mcp/dist/index.js"]
 env = { APPLE_PODCASTS_ACCESS_TOKEN = "your-access-token", APPLE_PODCASTS_VENDOR_ID = "87654321" }
 ```
 
 #### Claude Desktop
 
 Same block as Claude Code, in `claude_desktop_config.json`.
+
+Once this is on npm, `npx -y @conorbronsdon/apple-podcasts-mcp` replaces the `node` invocation in every block above.
 
 The server starts without credentials so a client can list its tools. Each tool call then fails with a message telling you which variable is missing.
 
