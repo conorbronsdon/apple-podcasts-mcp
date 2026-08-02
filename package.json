@@ -1,0 +1,57 @@
+{
+  "name": "@conorbronsdon/apple-podcasts-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for Apple Podcasts Connect owner analytics via the Reporter protocol — plays, followers, and per-episode listening. Not the public iTunes catalog.",
+  "type": "module",
+  "bin": {
+    "apple-podcasts-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc",
+    "lint": "tsc --noEmit",
+    "test": "vitest run",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts",
+    "prepublishOnly": "npm run build && npm test"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.7.0",
+    "vitest": "^4.1.0"
+  },
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "apple-podcasts",
+    "podcast",
+    "analytics",
+    "reporter",
+    "ai",
+    "claude"
+  ],
+  "license": "Apache-2.0",
+  "author": "Conor Bronsdon (https://conorbronsdon.com)",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/conorbronsdon/apple-podcasts-mcp.git"
+  },
+  "homepage": "https://github.com/conorbronsdon/apple-podcasts-mcp#readme",
+  "bugs": {
+    "url": "https://github.com/conorbronsdon/apple-podcasts-mcp/issues"
+  },
+  "mcpName": "io.github.conorbronsdon/apple-podcasts-mcp"
+}

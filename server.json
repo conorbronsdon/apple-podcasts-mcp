@@ -1,0 +1,39 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.conorbronsdon/apple-podcasts-mcp",
+  "title": "Apple Podcasts MCP Server",
+  "description": "Apple Podcasts Connect owner analytics over the Reporter protocol: plays, followers, per-episode listening. Read-only.",
+  "repository": {
+    "url": "https://github.com/conorbronsdon/apple-podcasts-mcp",
+    "source": "github"
+  },
+  "version": "0.1.0",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "@conorbronsdon/apple-podcasts-mcp",
+      "version": "0.1.0",
+      "runtimeHint": "npx",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "APPLE_PODCASTS_ACCESS_TOKEN",
+          "description": "Reporter access token from Apple Podcasts Connect (Settings > Access Token). Expires 180 days after it is generated.",
+          "isRequired": true
+        },
+        {
+          "name": "APPLE_PODCASTS_VENDOR_ID",
+          "description": "Vendor number from Apple Podcasts Connect Settings, e.g. 87654321",
+          "isRequired": true
+        },
+        {
+          "name": "APPLE_PODCASTS_ACCOUNT_ID",
+          "description": "Apple account number. Only needed when the access token can read more than one account, which Reporter reports as error 214.",
+          "isRequired": false
+        }
+      ]
+    }
+  ]
+}

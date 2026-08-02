@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # These two are the floor and the current LTS. The floor here is what
+        # package.json `engines` claims, so a version that is not tested is
+        # not advertised — Node 18 is end-of-life and was never run.
+        node-version: ['20.19.x', '22.12.x']
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+      - run: npm ci
+      - run: npm audit --audit-level=critical
+      - run: npm run lint
+      - run: npm run build
+      - run: npm test
+
+  # Stable gate check that branch protection can require, independent of how
+  # the matrix is named or how many legs it has. Bumping Node versions or
+  # adding/removing matrix entries no longer requires touching branch
+  # protection — only this single check is required to merge.
+  tests-pass:
+    runs-on: ubuntu-latest
+    needs: [test]
+    if: always()
+    steps:
+      - name: Verify all matrix legs succeeded
+        run: |
+          if [[ "${{ needs.test.result }}" != "success" ]]; then
+            echo "Matrix test job result: ${{ needs.test.result }} (required: success)"
+            exit 1
+          fi
+          echo "All matrix legs passed."
