@@ -28,7 +28,7 @@ export class TokenExpiredError extends ReporterError {
   constructor(command: string) {
     super(
       123,
-      "Access token is expired. Reporter tokens last 180 days. Generate a new one in Apple Podcasts Connect > Settings > Access Token and update APPLE_PODCASTS_ACCESS_TOKEN. See the token rotation section of the README.",
+      "Access token is expired. Reporter tokens last 180 days. Issue a new one with Reporter's generateToken command and update APPLE_PODCASTS_ACCESS_TOKEN. Note that Apple allows one active token per Apple Account, so rotating breaks anything else on the account that uses Reporter. See the token rotation section of the README.",
       command,
     );
     this.name = "TokenExpiredError";
@@ -40,7 +40,7 @@ export class TokenInvalidError extends ReporterError {
   constructor(command: string, code = 124) {
     super(
       code,
-      "Access token is missing, malformed, or rejected. Set APPLE_PODCASTS_ACCESS_TOKEN to the token shown in Apple Podcasts Connect > Settings > Access Token. Copy the whole string; it is long and easy to truncate.",
+      "Access token is missing, malformed, or rejected. Set APPLE_PODCASTS_ACCESS_TOKEN to a token issued by Reporter's generateToken command. Copy the whole string; it is long and easy to truncate.",
       command,
     );
     this.name = "TokenInvalidError";
@@ -52,7 +52,7 @@ export class VendorError extends ReporterError {
   constructor(command: string, vendorId: string, code = 200) {
     super(
       code,
-      `Invalid vendor number "${vendorId}". Find the number in Apple Podcasts Connect > Settings. It is digits only, no leading letter. Run the apple_podcasts_check_access tool to list the vendor numbers this token can read.`,
+      `Invalid vendor number "${vendorId}". It is digits only, no leading letter — the account UUID shown under Podcasts Connect > Account > Details is a different identifier and will not work. Vendor numbers exist only for Apple Podcasters Program members. Run the apple_podcasts_check_access tool to list the vendor numbers this token can read.`,
       command,
     );
     this.name = "VendorError";
@@ -84,7 +84,7 @@ export class AccountError extends ReporterError {
     super(
       code,
       code === 214
-        ? "This access token has access to more than one Apple account, so Reporter will not pick one. Set APPLE_PODCASTS_ACCOUNT_ID to the account number you want to read (Apple Podcasts Connect > Settings, or the account list in App Store Connect) and restart the MCP client."
+        ? "This access token has access to more than one Apple account, so Reporter will not pick one. Set APPLE_PODCASTS_ACCOUNT_ID to the account number you want to read and restart the MCP client. Reporter's viewToken command lists the accounts a token can reach."
         : `Account number ${accountId ? `"${accountId}"` : "specified"} is not one this access token can read. Check APPLE_PODCASTS_ACCOUNT_ID, or unset it if the token only has one account.`,
       command,
     );

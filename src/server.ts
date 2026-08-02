@@ -31,7 +31,7 @@ async function guard(
 ): Promise<ReturnType<typeof json> | ReturnType<typeof errorResult>> {
   if (!client.isConfigured) {
     return errorResult(
-      "Apple Podcasts credentials are not configured. Set APPLE_PODCASTS_ACCESS_TOKEN and APPLE_PODCASTS_VENDOR_ID. Generate the token in Apple Podcasts Connect > Settings > Access Token; it expires 180 days after you create it. See the README.",
+      "Apple Podcasts credentials are not configured. Set APPLE_PODCASTS_ACCESS_TOKEN and APPLE_PODCASTS_VENDOR_ID. Both require an Apple Podcasters Program membership — the token comes from Reporter's generateToken command and expires 180 days after you create it. See the README.",
     );
   }
   try {

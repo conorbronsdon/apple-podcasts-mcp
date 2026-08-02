@@ -23,7 +23,7 @@ async function main() {
       `Warning: ${names.join(" and ")} ${names.length > 1 ? "are" : "is"} not set. Tools will error until configured.`,
     );
     console.error(
-      "Generate an access token in Apple Podcasts Connect > Settings > Access Token (it expires after 180 days) and find your vendor number on the same settings page. See README.md.",
+      "Both come from Apple's Reporter service and require an Apple Podcasters Program membership: the token from Reporter's generateToken command (it expires after 180 days), the vendor number from the vendor relationship that membership creates. A free Podcasts Connect account has neither. See README.md.",
     );
   }
 

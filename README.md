@@ -7,6 +7,7 @@ Owner-side Apple Podcasts analytics for AI agents: plays, followers, and per-epi
 [![npm version](https://img.shields.io/npm/v/@conorbronsdon/apple-podcasts-mcp?style=flat-square)](https://www.npmjs.com/package/@conorbronsdon/apple-podcasts-mcp)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg?style=flat-square)](LICENSE)
 [![Node](https://img.shields.io/badge/Node-20.19+-339933?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org/)
+[![Glama score](https://glama.ai/mcp/servers/conorbronsdon/apple-podcasts-mcp/badges/score.svg)](https://glama.ai/mcp/servers/conorbronsdon/apple-podcasts-mcp)
 [![Podcast](https://img.shields.io/badge/Podcast-Chain_of_Thought-purple?style=flat-square)](https://chainofthought.show/?utm_source=github&utm_medium=referral&utm_campaign=repo-readme&utm_content=apple-podcasts-mcp)
 [![X](https://img.shields.io/badge/X-@ConorBronsdon-black?style=flat-square&logo=x)](https://x.com/ConorBronsdon)
 
@@ -17,6 +18,10 @@ Owner-side Apple Podcasts analytics for AI agents: plays, followers, and per-epi
 An MCP server for the analytics Apple shows the person who owns the show: how many plays an episode got, how far into it people got, and whether the follower count is moving. That data lives behind Apple Podcasts Connect and the Reporter service, and it is not in Apple's public catalog API.
 
 **Nothing here has been checked against a live Apple account.** The protocol is implemented from Apple's Reporter documentation and tested against fixtures written by hand. No request this server sends and no response it parses has been confirmed on the wire. If you run it against a real vendor number, an issue saying what came back is the most useful thing you can send.
+
+**You need an Apple Podcasters Program membership to use this at all.** Reporter identifies you by a *vendor number*, and a vendor number is issued as part of the vendor relationship that Program enrollment creates. A standard free Podcasts Connect account does not have one: its Account → Details page shows an account UUID, which is a different identifier and will not work here. Enrollment costs an annual fee and requires a legal entity with tax and banking details. See [Availability of Apple Podcasts features](https://podcasters.apple.com/support/904-availability-of-apple-podcasts-features).
+
+If you are not enrolled, there is nothing to configure and this server cannot help you — read your numbers in the Analytics section of Podcasts Connect instead.
 
 **Read-only.** Reporter only reads. Nothing this server does can change a show, an episode, or an account.
 
@@ -61,9 +66,18 @@ Apple's numbers are not headcounts. Podcasts Connect Analytics aggregates "liste
 
 ### 1. Get your vendor number and access token
 
-1. Sign in to [Apple Podcasts Connect](https://podcastsconnect.apple.com).
-2. Go to **Settings**. Your vendor number is there — digits only, something like `87654321`.
-3. On the same page, generate an **Access Token**. Copy the whole string; it is long and truncating it produces a confusing "invalid token" rather than an obvious paste error.
+Both come from the Reporter side of Apple Podcasts, which requires an **Apple Podcasters Program** membership — see the note at the top. A free Podcasts Connect account has neither.
+
+Enrolled accounts get their vendor number and access token through Apple's Reporter tooling, documented in the [Reporter User Guide](https://help.apple.com/itc/podcastsreporterguide/en.lproj/static.html). Reporter's `generateToken` command issues the access token; `viewToken` shows the current one and its expiry.
+
+Two constraints from Apple's documentation that will bite you:
+
+- **One active token per Apple Account.** Generating a new token immediately expires the previous one. If anything else uses Reporter on this account — another tool, a colleague, a dashboard you set up last year — generating a token here silently breaks it, and the failure looks exactly like expiry.
+- **Token management is not meant to be automated.** Apple states these commands "are not intended for automated use and access may be rate limited," so do not script rotation.
+
+> **The `Settings` page this section used to point at does not exist.** An earlier version of these instructions said to find the vendor number and generate an access token under Podcasts Connect → Settings. Podcasts Connect has no Settings page. Its Account section has People, API Keys, and Details, and none of them carries a vendor number. Those instructions were written from Apple's documentation and never checked against the product.
+>
+> The **API Keys** page there is a different feature and not a substitute: Apple states an API key "allows your hosting provider to publish shows and episodes to Apple Podcasts on your behalf, but they will not have access to your listening analytics." Generating one grants this server nothing, and a key cannot be modified to add services after it is created.
 
 ### 2. Build it
 
@@ -146,9 +160,11 @@ update APPLE_PODCASTS_ACCESS_TOKEN.
 
 To rotate:
 
-1. Apple Podcasts Connect → **Settings** → **Access Token**.
-2. Generate a new token. The old one stops working, so do this when you can update the config in the same sitting.
+1. Issue a new token with Reporter's `generateToken`, per the [Reporter User Guide](https://help.apple.com/itc/podcastsreporterguide/en.lproj/static.html).
+2. The old one stops working the moment the new one exists, so do this when you can update the config in the same sitting.
 3. Replace `APPLE_PODCASTS_ACCESS_TOKEN` wherever you set it, and restart the MCP client so it picks up the new environment.
+
+**Rotation is account-wide, not per-application.** Apple allows one active token per Apple Account. Anything else on the account that talks to Reporter will start failing the moment you rotate here, with the same code 123 this server reports. If more than one thing needs Reporter access, they have to share a token and rotate together.
 
 Two things worth doing when you set this up:
 
