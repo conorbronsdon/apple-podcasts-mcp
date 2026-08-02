@@ -7,6 +7,7 @@ Owner-side Apple Podcasts analytics for AI agents: plays, followers, and per-epi
 [![npm version](https://img.shields.io/npm/v/@conorbronsdon/apple-podcasts-mcp?style=flat-square)](https://www.npmjs.com/package/@conorbronsdon/apple-podcasts-mcp)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg?style=flat-square)](LICENSE)
 [![Node](https://img.shields.io/badge/Node-20.19+-339933?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org/)
+[![Glama score](https://glama.ai/mcp/servers/conorbronsdon/apple-podcasts-mcp/badges/score.svg)](https://glama.ai/mcp/servers/conorbronsdon/apple-podcasts-mcp)
 [![Podcast](https://img.shields.io/badge/Podcast-Chain_of_Thought-purple?style=flat-square)](https://chainofthought.show/?utm_source=github&utm_medium=referral&utm_campaign=repo-readme&utm_content=apple-podcasts-mcp)
 [![X](https://img.shields.io/badge/X-@ConorBronsdon-black?style=flat-square&logo=x)](https://x.com/ConorBronsdon)
 
