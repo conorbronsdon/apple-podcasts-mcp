@@ -1,7 +1,7 @@
 {
   "name": "@conorbronsdon/apple-podcasts-mcp",
-  "version": "0.1.0",
-  "description": "MCP server for Apple Podcasts Connect owner analytics via the Reporter protocol — plays, followers, and per-episode listening. Not the public iTunes catalog.",
+  "version": "0.2.0",
+  "description": "MCP server for Apple Podcasts Connect owner analytics via the Reporter protocol \u2014 plays, followers, and per-episode listening. Not the public iTunes catalog.",
   "type": "module",
   "bin": {
     "apple-podcasts-mcp": "dist/index.js"
