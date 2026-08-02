@@ -190,7 +190,13 @@ describe("apple_podcasts_summary", () => {
     });
     expect(res.isError).toBe(true);
     expect(res.text).toMatch(/180 days/);
-    expect(res.text).toMatch(/Podcasts Connect/);
+    // Names the actual remedy: Reporter's generateToken, not a Podcasts Connect
+    // page. The web UI has no token generator, so pointing there sent people
+    // hunting for a screen that does not exist.
+    expect(res.text).toMatch(/generateToken/);
+    // Rotation is account-wide; the message has to say so or the collateral
+    // breakage looks like an unrelated outage.
+    expect(res.text).toMatch(/one active token per Apple Account/);
   });
 
   it("flags renamed columns rather than silently reporting nothing", async () => {
