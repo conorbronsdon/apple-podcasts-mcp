@@ -4,6 +4,7 @@
 
 Owner-side Apple Podcasts analytics for AI agents: plays, followers, and per-episode listening, over the Apple Podcasts Connect Reporter protocol. Read-only.
 
+[![npm version](https://img.shields.io/npm/v/@conorbronsdon/apple-podcasts-mcp?style=flat-square)](https://www.npmjs.com/package/@conorbronsdon/apple-podcasts-mcp)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg?style=flat-square)](LICENSE)
 [![Node](https://img.shields.io/badge/Node-20.19+-339933?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org/)
 [![Podcast](https://img.shields.io/badge/Podcast-Chain_of_Thought-purple?style=flat-square)](https://chainofthought.show/?utm_source=github&utm_medium=referral&utm_campaign=repo-readme&utm_content=apple-podcasts-mcp)
@@ -66,7 +67,7 @@ Apple's numbers are not headcounts. Podcasts Connect Analytics aggregates "liste
 
 ### 2. Build it
 
-Not on npm yet. Clone and build, then point your client at the built entry point.
+Published on npm. The config blocks below use `npx`, which fetches it on first run; no clone required.
 
 ```bash
 git clone https://github.com/conorbronsdon/apple-podcasts-mcp.git
@@ -85,8 +86,8 @@ Add to your `.mcp.json`:
 {
   "mcpServers": {
     "apple-podcasts": {
-      "command": "node",
-      "args": ["/absolute/path/to/apple-podcasts-mcp/dist/index.js"],
+      "command": "npx",
+      "args": ["-y", "@conorbronsdon/apple-podcasts-mcp"],
       "env": {
         "APPLE_PODCASTS_ACCESS_TOKEN": "your-access-token",
         "APPLE_PODCASTS_VENDOR_ID": "87654321"
@@ -102,16 +103,14 @@ Add to `~/.codex/config.toml`:
 
 ```toml
 [mcp_servers.apple-podcasts]
-command = "node"
-args = ["/absolute/path/to/apple-podcasts-mcp/dist/index.js"]
+command = "npx"
+args = ["-y", "@conorbronsdon/apple-podcasts-mcp"]
 env = { APPLE_PODCASTS_ACCESS_TOKEN = "your-access-token", APPLE_PODCASTS_VENDOR_ID = "87654321" }
 ```
 
 #### Claude Desktop
 
 Same block as Claude Code, in `claude_desktop_config.json`.
-
-Once this is on npm, `npx -y @conorbronsdon/apple-podcasts-mcp` replaces the `node` invocation in every block above.
 
 The server starts without credentials so a client can list its tools. Each tool call then fails with a message telling you which variable is missing.
 
