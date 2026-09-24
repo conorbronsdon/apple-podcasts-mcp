@@ -302,7 +302,7 @@ Built and maintained by [Conor Bronsdon](https://github.com/conorbronsdon). I ho
 Companion tools:
 
 - [op3-mcp](https://github.com/conorbronsdon/op3-mcp): OP3 download analytics — geography, apps, per-episode downloads. Downloads where this covers plays.
-- [Transistor-MCP](https://github.com/conorbronsdon/Transistor-MCP): the Transistor.fm MCP server. Episodes, transcripts, hosting-side counts.
+- [Transistor MCP](https://mcp.transistor.fm): Transistor.fm's official MCP server. Episodes, publishing, and analytics.
 - [podcastindex-mcp](https://github.com/conorbronsdon/podcastindex-mcp): the Podcast Index MCP server, search by person or topic, trending shows, feed health.
 - [podcast-benchmark](https://github.com/conorbronsdon/podcast-benchmark): benchmark your show against peers on public signals.
 - [ai-tools-for-creators](https://github.com/conorbronsdon/ai-tools-for-creators): a curated list of AI skills and MCP servers for people who ship ideas for a living.
