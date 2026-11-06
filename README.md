@@ -142,7 +142,7 @@ The server starts without credentials so a client can list its tools. Each tool 
 
 It is an environment variable rather than a tool argument because it is part of the credential, not part of a question: it does not vary between calls, and putting it in every tool's schema would spend context on an argument almost no one sets. Leave it unset if you have one account — Reporter rejects an empty account field, so the server omits it entirely rather than sending a blank. `apple_podcasts_check_access` echoes back the account number in use.
 
-### 3. Verify
+### 4. Verify
 
 Ask your assistant: **"Check my Apple Podcasts access."** That runs `apple_podcasts_check_access`, which proves the token works and shows whether your vendor number is one the token can read — the two failures that look identical from the outside.
 
@@ -154,8 +154,10 @@ When a token expires, tools return:
 
 ```
 Apple Reporter error (123) on Sales.getReport: Access token is expired. Reporter tokens
-last 180 days. Generate a new one in Apple Podcasts Connect > Settings > Access Token and
-update APPLE_PODCASTS_ACCESS_TOKEN.
+last 180 days. Issue a new one with Reporter's generateToken command and update
+APPLE_PODCASTS_ACCESS_TOKEN. Note that Apple allows one active token per Apple Account,
+so rotating breaks anything else on the account that uses Reporter. See the token
+rotation section of the README.
 ```
 
 To rotate:
