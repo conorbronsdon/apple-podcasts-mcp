@@ -7,12 +7,12 @@
     "url": "https://github.com/conorbronsdon/apple-podcasts-mcp",
     "source": "github"
   },
-  "version": "0.1.0",
+  "version": "0.2.1",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "@conorbronsdon/apple-podcasts-mcp",
-      "version": "0.1.0",
+      "version": "0.2.1",
       "runtimeHint": "npx",
       "transport": {
         "type": "stdio"

@@ -7,7 +7,7 @@ import { rollupEpisodes, stripNulls, summarize, trend } from "./shape.js";
 import { resolveColumns, unmappedColumns, type MetricKey } from "./tsv.js";
 import { PERIODS, REPORT_TYPES, type Period } from "./types.js";
 
-const VERSION = "0.1.0";
+const VERSION = "0.2.1";
 
 const json = (data: unknown) => ({
   content: [
