@@ -79,6 +79,20 @@ const maxPeriodsArg = (fallback: number) =>
 const PERIOD_CAP = 31;
 
 /**
+ * MCP tool annotations shared by every tool. The spec's defaults are the
+ * unsafe values (readOnlyHint false, destructiveHint true, openWorldHint
+ * true), so a client that sees no annotations has to assume a tool can write.
+ * Every tool here only reads from Apple's Reporter service, which is an
+ * external system, so: read-only, non-destructive, idempotent, open-world.
+ */
+export const READ_ONLY_ANNOTATIONS = {
+  readOnlyHint: true,
+  destructiveHint: false,
+  idempotentHint: true,
+  openWorldHint: true,
+} as const;
+
+/**
  * The answer for a range that produced no Reporter dates at all.
  *
  * A Weekly range with no week-ending Sunday in it — say Monday to Friday —
@@ -129,6 +143,7 @@ export function createServer(client: ReporterClient): McpServer {
     "apple_podcasts_check_access",
     "Verify the configured Apple Podcasts Connect credentials and list the vendor numbers this access token can read. Run this first, and run it whenever another tool reports an auth failure: Reporter access tokens expire 180 days after they are generated, and the failure looks like a permissions problem rather than an expiry. Returns no listening data.",
     {},
+    READ_ONLY_ANNOTATIONS,
     async () =>
       guard(client, async () => {
         const vendors = await client.getVendors();
@@ -176,6 +191,7 @@ export function createServer(client: ReporterClient): McpServer {
           "Use the worldwide report (one row per period) instead of the per-storefront report (one row per storefront). Worldwide is smaller and is what you want unless you need geography.",
         ),
     },
+    READ_ONLY_ANNOTATIONS,
     async ({ period, start, end, max_periods, worldwide }) =>
       guard(client, async () => {
         const cap = Math.min(Math.max(1, max_periods), PERIOD_CAP);
@@ -275,6 +291,7 @@ export function createServer(client: ReporterClient): McpServer {
           "Use the worldwide episode report instead of the per-storefront one. Per-storefront repeats every episode once per country, which is far more rows for the same totals.",
         ),
     },
+    READ_ONLY_ANNOTATIONS,
     async ({ period, start, end, max_periods, limit, sort_by, worldwide }) =>
       guard(client, async () => {
         const cap = Math.min(Math.max(1, max_periods), PERIOD_CAP);
@@ -359,6 +376,7 @@ export function createServer(client: ReporterClient): McpServer {
       end: endArg,
       max_periods: maxPeriodsArg(14),
     },
+    READ_ONLY_ANNOTATIONS,
     async ({ period, start, end, max_periods }) =>
       guard(client, async () => {
         const cap = Math.min(Math.max(1, max_periods), PERIOD_CAP);
