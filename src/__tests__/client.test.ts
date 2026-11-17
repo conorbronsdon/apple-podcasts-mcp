@@ -309,7 +309,7 @@ describe("non-XML error envelopes under HTTP 200", () => {
 
 describe("getVendors on a body that is not a vendor list", () => {
   const NOT_A_VENDOR_LIST =
-    "Apple Reporter error (0) on Sales.getVendors: Reporter answered with a body that is not a vendor list and carries no Reporter error code, so the token could not be verified. This is usually an HTML maintenance page, a proxy or firewall block page, or a captive portal rather than Apple's Reporter service. Retry later, or from a network that reaches reportingitc-reporter.apple.com directly. Body began: ";
+    "Apple Reporter error (0) on Sales.getVendors: Reporter answered with a body that is not a vendor list and carries no Reporter error code, so the token could not be verified. Possible causes: an HTML maintenance page, a proxy, firewall or captive-portal page, or a Reporter reply this server does not recognise. Retry later, or from a network that reaches reportingitc-reporter.apple.com directly; if it persists, check the token in App Store Connect. Body began: ";
 
   it("throws on an HTML maintenance page under HTTP 200 instead of returning []", async () => {
     stubFetch(() => htmlResponse(HTML_MAINTENANCE_PAGE));
@@ -337,6 +337,43 @@ describe("getVendors on a body that is not a vendor list", () => {
       NOT_A_VENDOR_LIST + "<html><body>Request blocked: jsonRequest=[redacted]",
     );
     expect(err.message).not.toContain("example-token-abc123");
+  });
+
+  it("fails closed on a plain-text body with no vendor number, without blaming the network", async () => {
+    // What Reporter sends for a token with no vendors is unconfirmed. A
+    // non-empty, non-list body must not become tokenWorks: true, and the
+    // message must not claim a proxy is at fault.
+    stubFetch(() => textResponse("No vendors found\n"));
+    const err = (await new ReporterClient("tok", "87654321")
+      .getVendors()
+      .catch((e: unknown) => e)) as ReporterError;
+    expect(err).toBeInstanceOf(ReporterError);
+    expect(err.message).toBe(NOT_A_VENDOR_LIST + "No vendors found");
+  });
+
+  it("quotes at most the first 200 characters of a long body", async () => {
+    const body = "<html><body>" + "x".repeat(400) + "</body></html>";
+    stubFetch(() => htmlResponse(body));
+    const err = (await new ReporterClient("tok", "87654321")
+      .getVendors()
+      .catch((e: unknown) => e)) as ReporterError;
+    expect(err.message).toBe(NOT_A_VENDOR_LIST + body.slice(0, 200));
+    expect(err.message.length).toBe(NOT_A_VENDOR_LIST.length + 200);
+  });
+
+  it("never quotes any part of a token that straddles the 200-char cut", async () => {
+    const prefix = "<html><body>" + "y".repeat(150) + ' jsonRequest={"accesstoken":"';
+    const body = prefix + 'example-token-straddles-the-cut-0123456789"}</body></html>';
+    expect(prefix.length).toBeLessThan(200);
+    expect(prefix.length + "example-token-straddles-the-cut-0123456789".length).toBeGreaterThan(200);
+    stubFetch(() => htmlResponse(body));
+    const err = (await new ReporterClient("tok", "87654321")
+      .getVendors()
+      .catch((e: unknown) => e)) as ReporterError;
+    expect(err.message).toBe(
+      NOT_A_VENDOR_LIST + "<html><body>" + "y".repeat(150) + " jsonRequest=[redacted]",
+    );
+    expect(err.message).not.toContain("example-token");
   });
 
   it("still returns the exact vendor numbers from a CRLF- or comma-separated list", async () => {

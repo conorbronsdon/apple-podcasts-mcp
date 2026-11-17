@@ -426,7 +426,7 @@ describe("apple_podcasts_check_access", () => {
     expect(res.data).toBeUndefined();
     expect(res.text).not.toContain("tokenWorks");
     expect(res.text.split(" Body began: ")[0]).toBe(
-      "Apple Reporter error (0) on Sales.getVendors: Reporter answered with a body that is not a vendor list and carries no Reporter error code, so the token could not be verified. This is usually an HTML maintenance page, a proxy or firewall block page, or a captive portal rather than Apple's Reporter service. Retry later, or from a network that reaches reportingitc-reporter.apple.com directly.",
+      "Apple Reporter error (0) on Sales.getVendors: Reporter answered with a body that is not a vendor list and carries no Reporter error code, so the token could not be verified. Possible causes: an HTML maintenance page, a proxy, firewall or captive-portal page, or a Reporter reply this server does not recognise. Retry later, or from a network that reaches reportingitc-reporter.apple.com directly; if it persists, check the token in App Store Connect.",
     );
     // Stops at getVendors: viewToken is never asked to vouch for the token.
     expect(bodies.map(queryInputOf)).toEqual([
@@ -456,6 +456,8 @@ describe("apple_podcasts_check_access", () => {
     expect(empty.data.tokenWorks).toBe(true);
     expect(empty.data.authorizedVendors).toEqual([]);
     expect(empty.data.configuredVendorIsAuthorized).toBeUndefined();
+    // viewToken is still consulted, so the expiry date is still reported.
+    expect(empty.data.tokenExpires).toBe("2027-01-24");
   });
 
   it("still succeeds when viewToken is unavailable for the account", async () => {

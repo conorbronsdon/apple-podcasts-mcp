@@ -247,7 +247,7 @@ export class ReporterClient {
     if (vendors.length === 0 && text.trim() !== "") {
       throw new ReporterError(
         0,
-        `Reporter answered with a body that is not a vendor list and carries no Reporter error code, so the token could not be verified. This is usually an HTML maintenance page, a proxy or firewall block page, or a captive portal rather than Apple's Reporter service. Retry later, or from a network that reaches reportingitc-reporter.apple.com directly. Body began: ${redactSecrets(text.trim()).slice(0, 200)}`,
+        `Reporter answered with a body that is not a vendor list and carries no Reporter error code, so the token could not be verified. Possible causes: an HTML maintenance page, a proxy, firewall or captive-portal page, or a Reporter reply this server does not recognise. Retry later, or from a network that reaches reportingitc-reporter.apple.com directly; if it persists, check the token in App Store Connect. Body began: ${redactSecrets(text.trim()).slice(0, 200)}`,
         "Sales.getVendors",
       );
     }
