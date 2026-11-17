@@ -39,6 +39,29 @@ describe("parseIsoish", () => {
     );
   });
 
+  it("rejects a day that does not exist in its month instead of rolling it over", () => {
+    expect(parseIsoish("2026-02-29")).toBeUndefined();
+    expect(parseIsoish("2026-02-30")).toBeUndefined();
+    expect(parseIsoish("2026-04-31")).toBeUndefined();
+    expect(parseIsoish("20260931")).toBeUndefined();
+    expect(parseIsoish("2026-07-00")).toBeUndefined();
+  });
+
+  it("keeps real month-end days, including a leap day", () => {
+    expect(parseIsoish("2028-02-29")?.toISOString()).toBe(
+      "2028-02-29T00:00:00.000Z",
+    );
+    expect(parseIsoish("2026-02-28")?.toISOString()).toBe(
+      "2026-02-28T00:00:00.000Z",
+    );
+    expect(parseIsoish("2026-12-31")?.toISOString()).toBe(
+      "2026-12-31T00:00:00.000Z",
+    );
+    expect(parseIsoish("2026-04-30")?.toISOString()).toBe(
+      "2026-04-30T00:00:00.000Z",
+    );
+  });
+
   it("rejects garbage", () => {
     expect(parseIsoish("last tuesday")).toBeUndefined();
     expect(parseIsoish("2026")).toBeUndefined();
