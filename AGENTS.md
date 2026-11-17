@@ -18,7 +18,7 @@ MCP server for Apple Podcasts Connect owner analytics over the Reporter protocol
 ## Key constraints
 - Reporter is not REST. Errors come back with a numeric code in the body, often under HTTP 200 — never trust `response.ok` alone.
 - `version` must be `"2.2"`. Token auth requires Reporter 2.2+.
-- Reporter has no range query: one date is one HTTP call. `max_periods` (hard cap 31) exists to keep a tool call from making hundreds.
+- Reporter has no range query: one date is one HTTP call. `max_periods` (an integer from 1 to 31, enforced by the zod schema and advertised in `tools/list`) exists to keep a tool call from making hundreds.
 - Never hardcode an Apple column name in a handler. Resolve through `COLUMN_ALIASES` and report `resolvedColumns` / `unmappedColumns`.
 - Followers is a level, not a flow. It must not be summed into `totals` — and "no metric columns found" must be decided from the resolved columns, not from empty totals, or a followers-only report reads as unreadable.
 - A Weekly range with no Sunday in it expands to zero dates. That is "no request was made", not "Apple had no data"; never explain it with the publishing lag.

@@ -66,17 +66,20 @@ const endArg = z
     "End of the range, YYYY-MM-DD (or YYYY-MM for Monthly). Defaults to 2 days ago, because Apple publishes reports on a lag.",
   );
 
+const PERIOD_CAP = 31;
+const EPISODE_ROW_CAP = 50;
+
 const maxPeriodsArg = (fallback: number) =>
   z
     .number()
     .int()
+    .min(1)
+    .max(PERIOD_CAP)
     .optional()
     .default(fallback)
     .describe(
       `How many periods to fetch, cap 31. Reporter has no range query, so each period is a separate call to Apple and a wide range will hit their throttle. Default ${fallback}. Ranges longer than this are truncated to the most recent periods.`,
     );
-
-const PERIOD_CAP = 31;
 
 /**
  * MCP tool annotations shared by every tool. The spec's defaults are the
@@ -194,12 +197,11 @@ export function createServer(client: ReporterClient): McpServer {
     READ_ONLY_ANNOTATIONS,
     async ({ period, start, end, max_periods, worldwide }) =>
       guard(client, async () => {
-        const cap = Math.min(Math.max(1, max_periods), PERIOD_CAP);
         const range = resolveRange({
           period: period as Period,
           start,
           end,
-          maxDates: cap,
+          maxDates: max_periods,
         });
         const reportType = worldwide
           ? REPORT_TYPES["show-worldwide"]
@@ -275,6 +277,8 @@ export function createServer(client: ReporterClient): McpServer {
       limit: z
         .number()
         .int()
+        .min(1)
+        .max(EPISODE_ROW_CAP)
         .optional()
         .default(10)
         .describe("Max episodes to return, ranked by sort_by. Default 10, cap 50."),
@@ -294,13 +298,12 @@ export function createServer(client: ReporterClient): McpServer {
     READ_ONLY_ANNOTATIONS,
     async ({ period, start, end, max_periods, limit, sort_by, worldwide }) =>
       guard(client, async () => {
-        const cap = Math.min(Math.max(1, max_periods), PERIOD_CAP);
-        const rowCap = Math.min(Math.max(1, limit), 50);
+        const rowCap = limit;
         const range = resolveRange({
           period: period as Period,
           start,
           end,
-          maxDates: cap,
+          maxDates: max_periods,
         });
         const reportType = worldwide
           ? REPORT_TYPES["episode-worldwide"]
@@ -379,12 +382,11 @@ export function createServer(client: ReporterClient): McpServer {
     READ_ONLY_ANNOTATIONS,
     async ({ period, start, end, max_periods }) =>
       guard(client, async () => {
-        const cap = Math.min(Math.max(1, max_periods), PERIOD_CAP);
         const range = resolveRange({
           period: period as Period,
           start,
           end,
-          maxDates: cap,
+          maxDates: max_periods,
         });
 
         if (range.dates.length === 0) {
