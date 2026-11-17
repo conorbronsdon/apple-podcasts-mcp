@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   AccountError,
   BadRequestError,
+  isReporterErrorBody,
   mapReporterError,
   NoDataError,
   parseReporterError,
@@ -17,7 +18,12 @@ import {
   ERROR_DELAYED,
   ERROR_NO_DATA,
   ERROR_TOKEN_EXPIRED,
+  ERROR_TOKEN_EXPIRED_JSON,
+  ERROR_TOKEN_EXPIRED_TEXT,
   ERROR_TOKEN_INVALID,
+  SHOW_WORLDWIDE_TSV,
+  VENDORS_TEXT,
+  VIEW_TOKEN_TEXT,
 } from "./fixtures/reports.js";
 
 describe("parseReporterError", () => {
@@ -177,5 +183,27 @@ describe("mapReporterError", () => {
       map(ERROR_BAD_DATE).name,
     ];
     expect(new Set(classes).size).toBe(6);
+  });
+});
+
+describe("isReporterErrorBody", () => {
+  it("recognizes all three envelope shapes parseReporterError reads", () => {
+    expect(isReporterErrorBody(ERROR_TOKEN_EXPIRED)).toBe(true);
+    expect(isReporterErrorBody(ERROR_TOKEN_EXPIRED_TEXT)).toBe(true);
+    expect(isReporterErrorBody(ERROR_TOKEN_EXPIRED_JSON)).toBe(true);
+    expect(isReporterErrorBody('{"Code":"213","Message":"no data"}')).toBe(true);
+    expect(isReporterErrorBody("  code: 117 Podcast reports are delayed")).toBe(true);
+  });
+
+  it("does not flag payloads, including ones that mention an error", () => {
+    expect(isReporterErrorBody(VENDORS_TEXT)).toBe(false);
+    expect(isReporterErrorBody(VIEW_TOKEN_TEXT)).toBe(false);
+    expect(isReporterErrorBody(SHOW_WORLDWIDE_TSV)).toBe(false);
+    expect(isReporterErrorBody("87654321\nError 123 later in the body\n")).toBe(false);
+    expect(isReporterErrorBody("Errors 123")).toBe(false);
+    expect(isReporterErrorBody('{"vendors":[87654321]}')).toBe(false);
+    expect(isReporterErrorBody('{"code":""}')).toBe(false);
+    expect(isReporterErrorBody("{not json")).toBe(false);
+    expect(isReporterErrorBody("")).toBe(false);
   });
 });
