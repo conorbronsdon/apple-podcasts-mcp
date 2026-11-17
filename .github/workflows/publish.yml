@@ -112,7 +112,9 @@ jobs:
           SERVER_NAME="$(node -p "require('./package.json').mcpName")"
           LOCAL_VERSION="${{ steps.version.outputs.local }}"
           if curl -fsSL "https://registry.modelcontextprotocol.io/v0.1/servers?search=$SERVER_NAME" -o registry.json; then
-            REGISTRY_VERSION="$(SERVER_NAME="$SERVER_NAME" node -p "const r = JSON.parse(require('fs').readFileSync('registry.json', 'utf8')).servers || []; const m = r.find(s => s.server && s.server.name === process.env.SERVER_NAME); m ? m.server.version : 'none'")"
+            # Ask whether THIS version is present: the registry lists every version, and the
+            # first entry with a matching name is not necessarily the newest one.
+            REGISTRY_VERSION="$(SERVER_NAME="$SERVER_NAME" LOCAL_VERSION="$LOCAL_VERSION" node -p "const r = JSON.parse(require('fs').readFileSync('registry.json', 'utf8')).servers || []; const ex = r.filter(s => s.server && s.server.name === process.env.SERVER_NAME); const hit = ex.find(s => s.server.version === process.env.LOCAL_VERSION); hit ? hit.server.version : (ex.map(s => s.server.version).join(',') || 'none')")"
           else
             REGISTRY_VERSION=unknown
             echo "Registry lookup failed — will attempt the publish and let it decide."
