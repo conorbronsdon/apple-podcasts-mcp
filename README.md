@@ -79,9 +79,9 @@ Two constraints from Apple's documentation that will bite you:
 >
 > The **API Keys** page there is a different feature and not a substitute: Apple states an API key "allows your hosting provider to publish shows and episodes to Apple Podcasts on your behalf, but they will not have access to your listening analytics." Generating one grants this server nothing, and a key cannot be modified to add services after it is created.
 
-### 2. Build it
+### 2. Install
 
-Published on npm. The config blocks below use `npx`, which fetches it on first run; no clone required.
+Published on npm. The config blocks below use `npx`, which fetches it on first run, so there is nothing to install. To run from source instead, clone and build, then point your client at `node /path/to/apple-podcasts-mcp/dist/index.js`:
 
 ```bash
 git clone https://github.com/conorbronsdon/apple-podcasts-mcp.git
