@@ -2,7 +2,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ReporterClient } from "../client.js";
-import { createServer } from "../server.js";
+import { createServer, EPISODE_ROW_CAP, PERIOD_CAP } from "../server.js";
 import { gzipReport, SHOW_WORLDWIDE_TSV } from "./fixtures/reports.js";
 
 // #18: the schema advertises the caps the handlers enforce, and out-of-range
@@ -30,7 +30,7 @@ const DATA_TOOLS = ["apple_podcasts_summary", "apple_podcasts_episodes", "apple_
 const WIDE_RANGE = { start: "2026-01-01", end: "2026-07-30" };
 
 describe("advertised bounds", () => {
-  it("tools/list publishes max_periods 1..31 on every data tool and limit 1..50", async () => {
+  it("tools/list publishes max_periods 1..PERIOD_CAP on every data tool and limit 1..EPISODE_ROW_CAP", async () => {
     stubFetch();
     const client = await connect();
     const { tools } = await client.listTools();
@@ -40,17 +40,18 @@ describe("advertised bounds", () => {
         string,
         Record<string, unknown>
       >;
-      expect(props.max_periods, name).toMatchObject({ type: "integer", minimum: 1, maximum: 31 });
+      expect(PERIOD_CAP).toBe(31);
+      expect(props.max_periods, name).toMatchObject({ type: "integer", minimum: 1, maximum: PERIOD_CAP });
+      expect(props.max_periods.description, name).toContain(`an integer from 1 to ${PERIOD_CAP}`);
     }
     const episodes = tools.find((t) => t.name === "apple_podcasts_episodes")!;
-    expect((episodes.inputSchema.properties as Record<string, unknown>).limit).toMatchObject({
-      type: "integer",
-      minimum: 1,
-      maximum: 50,
-    });
+    const limit = (episodes.inputSchema.properties as Record<string, Record<string, unknown>>).limit;
+    expect(EPISODE_ROW_CAP).toBe(50);
+    expect(limit).toMatchObject({ type: "integer", minimum: 1, maximum: EPISODE_ROW_CAP });
+    expect(limit.description).toContain(`An integer from 1 to ${EPISODE_ROW_CAP}`);
   });
 
-  it.each(DATA_TOOLS.flatMap((name) => [0, 32, 500].map((max_periods) => [name, max_periods] as const)))(
+  it.each(DATA_TOOLS.flatMap((name) => [0, PERIOD_CAP + 1, 500].map((max_periods) => [name, max_periods] as const)))(
     "%s rejects max_periods %d as a tool error without calling Apple",
     async (name, max_periods) => {
       const fetch = stubFetch();
@@ -63,7 +64,7 @@ describe("advertised bounds", () => {
     },
   );
 
-  it.each([0, 51, 9999])("apple_podcasts_episodes rejects limit %d as a tool error", async (limit) => {
+  it.each([0, EPISODE_ROW_CAP + 1, 9999])("apple_podcasts_episodes rejects limit %d as a tool error", async (limit) => {
     const fetch = stubFetch();
     const client = await connect();
     const result = await client.callTool({
@@ -76,8 +77,11 @@ describe("advertised bounds", () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
-  it.each(DATA_TOOLS)("%s still accepts max_periods 1 and 31", async (name) => {
-    for (const max_periods of [1, 31]) {
+  // The values in between matter as much as the edges: a handler that
+  // replaced the argument with the cap (or a fixed number) would still pass
+  // at the cap itself, so 7 and 13 pin that the value is used as given.
+  it.each(DATA_TOOLS)("%s makes exactly max_periods Apple calls for 1, 7 and PERIOD_CAP", async (name) => {
+    for (const max_periods of [1, 7, PERIOD_CAP]) {
       const fetch = stubFetch();
       const client = await connect();
       const result = await client.callTool({ name, arguments: { ...WIDE_RANGE, max_periods } });
@@ -87,9 +91,15 @@ describe("advertised bounds", () => {
     }
   });
 
-  it("apple_podcasts_episodes still accepts limit 1 and 50", async () => {
-    for (const limit of [1, 50]) {
-      stubFetch();
+  it("apple_podcasts_episodes returns exactly limit rows for 1, 13 and EPISODE_ROW_CAP", async () => {
+    const header =
+      "Date\tEpisode Apple ID\tEpisode Name\tPlays\tUnique Listeners\tEngaged Listeners\n";
+    const rows = Array.from(
+      { length: 200 },
+      (_, i) => `2026-07-28\t100${i}\tEp ${i}\t${200 - i}\t10\t5`,
+    ).join("\n");
+    for (const limit of [1, 13, EPISODE_ROW_CAP]) {
+      vi.stubGlobal("fetch", vi.fn(async () => gzipReport(header + rows + "\n")));
       const client = await connect();
       const result = await client.callTool({
         name: "apple_podcasts_episodes",
@@ -97,6 +107,10 @@ describe("advertised bounds", () => {
       });
       await client.close();
       expect(result.isError, `limit=${limit}`).toBeFalsy();
+      const data = JSON.parse((result.content as { text: string }[])[0].text);
+      expect(data.returned, `limit=${limit}`).toBe(limit);
+      expect(data.episodes, `limit=${limit}`).toHaveLength(limit);
+      expect(data.totalEpisodes).toBe(200);
     }
   });
 });

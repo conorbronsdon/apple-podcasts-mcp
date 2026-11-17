@@ -66,8 +66,8 @@ const endArg = z
     "End of the range, YYYY-MM-DD (or YYYY-MM for Monthly). Defaults to 2 days ago, because Apple publishes reports on a lag.",
   );
 
-const PERIOD_CAP = 31;
-const EPISODE_ROW_CAP = 50;
+export const PERIOD_CAP = 31;
+export const EPISODE_ROW_CAP = 50;
 
 const maxPeriodsArg = (fallback: number) =>
   z
@@ -78,7 +78,7 @@ const maxPeriodsArg = (fallback: number) =>
     .optional()
     .default(fallback)
     .describe(
-      `How many periods to fetch, cap 31. Reporter has no range query, so each period is a separate call to Apple and a wide range will hit their throttle. Default ${fallback}. Ranges longer than this are truncated to the most recent periods.`,
+      `How many periods to fetch, an integer from 1 to ${PERIOD_CAP}. Reporter has no range query, so each period is a separate call to Apple and a wide range will hit their throttle. Default ${fallback}. Ranges longer than this are truncated to the most recent periods.`,
     );
 
 /**
@@ -281,7 +281,7 @@ export function createServer(client: ReporterClient): McpServer {
         .max(EPISODE_ROW_CAP)
         .optional()
         .default(10)
-        .describe("Max episodes to return, ranked by sort_by. Default 10, cap 50."),
+        .describe(`Max episodes to return, ranked by sort_by. An integer from 1 to ${EPISODE_ROW_CAP}. Default 10.`),
       sort_by: z
         .enum(["plays", "uniqueListeners", "engagedListeners"])
         .optional()
