@@ -6,6 +6,7 @@ import {
   EPISODE_WORLDWIDE_TSV_DAY2,
   ERROR_NO_DATA,
   ERROR_TOKEN_EXPIRED,
+  ERROR_TOKEN_EXPIRED_TEXT,
   errorResponse,
   FOLLOWERS_ONLY_TSV,
   gzipReport,
@@ -401,6 +402,16 @@ describe("apple_podcasts_check_access", () => {
       "apple_podcasts_check_access",
     );
     expect(data.configuredVendorIsAuthorized).toBe(false);
+  });
+
+  it("reports a plain-text expiry under HTTP 200 as an error, not tokenWorks", async () => {
+    stubFetch(() => textResponse(ERROR_TOKEN_EXPIRED_TEXT));
+    const res = await callTool(
+      createServer(client()),
+      "apple_podcasts_check_access",
+    );
+    expect(res.isError).toBe(true);
+    expect(res.text).toMatch(/^Apple Reporter error \(123\) on Sales\.getVendors: Access token is expired\./);
   });
 
   it("still succeeds when viewToken is unavailable for the account", async () => {

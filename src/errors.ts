@@ -217,6 +217,40 @@ export function redactSecrets(text: string): string {
 }
 
 /**
+ * Whether an uncompressed response body is a Reporter error envelope rather
+ * than a payload.
+ *
+ * Reporter answers failures under HTTP 200 in the same three shapes
+ * `parseReporterError` reads, so detection has to cover all three. Checking
+ * only the XML form let a plain-text or JSON error reach a payload parser:
+ * `Sales.getVendors` filtered "Error 123 - ..." down to an empty vendor list,
+ * and `apple_podcasts_check_access` then reported `tokenWorks: true` for an
+ * expired token.
+ *
+ * The text and JSON checks are anchored to the start of the body so a payload
+ * that merely mentions an error somewhere does not trip them.
+ */
+export function isReporterErrorBody(body: string): boolean {
+  const trimmed = body.trim();
+  if (/<Error>|<Code>\s*\d+\s*<\/Code>/i.test(trimmed)) return true;
+  if (/^(?:error|code)\b\D{0,3}\d{3}\b/i.test(trimmed)) return true;
+  if (trimmed.startsWith("{")) {
+    try {
+      const parsed = JSON.parse(trimmed) as { code?: unknown; Code?: unknown };
+      const raw = parsed?.code ?? parsed?.Code;
+      return (
+        (typeof raw === "number" || typeof raw === "string") &&
+        raw !== "" &&
+        Number.isFinite(Number(raw))
+      );
+    } catch {
+      return false;
+    }
+  }
+  return false;
+}
+
+/**
  * Pull a Reporter error code and message out of a response body.
  *
  * Reporter answers in one of three shapes depending on mode and failure kind:
