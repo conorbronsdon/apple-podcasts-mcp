@@ -149,12 +149,12 @@ describe("apple_podcasts_summary", () => {
     expect(data.rangeTruncated).toBe(true);
   });
 
-  it("clamps max_periods to the hard cap of 31", async () => {
+  it("makes exactly 31 Apple calls at the max_periods cap of 31", async () => {
     const bodies = stubFetch(() => gzipReport(SHOW_WORLDWIDE_TSV));
     await callTool(createServer(client()), "apple_podcasts_summary", {
       start: "2026-01-01",
       end: "2026-07-30",
-      max_periods: 5000,
+      max_periods: 31,
     });
     expect(bodies).toHaveLength(31);
   });
@@ -372,7 +372,7 @@ describe("apple_podcasts_episodes", () => {
     const { data } = await callTool(
       createServer(client()),
       "apple_podcasts_episodes",
-      { start: "2026-07-28", end: "2026-07-28", limit: 9999 },
+      { start: "2026-07-28", end: "2026-07-28", limit: 50 },
     );
     expect(data.returned).toBe(50);
     expect(data.totalEpisodes).toBe(200);

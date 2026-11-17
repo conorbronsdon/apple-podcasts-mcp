@@ -49,8 +49,8 @@ There is deliberately no "fetch the raw report" tool. Reporter returns one repor
 
 Every tool takes an explicit date range and a cap:
 
-- `max_periods` limits how many Reporter calls a single tool call makes. Hard cap 31. Reporter has no range query — one date is one HTTP round trip — so this is a rate-limit guard, not a formality. A range wider than the cap is truncated to the **most recent** periods, and the response says so with `rangeTruncated`.
-- `limit` on `apple_podcasts_episodes` caps returned rows at 50.
+- `max_periods` limits how many Reporter calls a single tool call makes. It must be an integer from 1 to 31; a value outside that range is an `Invalid arguments` tool error, not a silent clamp. Reporter has no range query — one date is one HTTP round trip — so this is a rate-limit guard, not a formality. A range wider than the cap is truncated to the **most recent** periods, and the response says so with `rangeTruncated`.
+- `limit` on `apple_podcasts_episodes` caps returned rows. It must be an integer from 1 to 50; a value outside that range is an `Invalid arguments` tool error.
 - Ranges default short: 7 days for Daily, 7 weeks for Weekly, 6 months for Monthly. Each default is sized to fit inside the default `max_periods` of 7, so a call with no dates returns a whole window rather than a truncated one.
 
 ## What the metrics mean
