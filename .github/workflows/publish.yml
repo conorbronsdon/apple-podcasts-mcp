@@ -24,6 +24,12 @@ on:
       - package.json
   workflow_dispatch:
 
+# Serialize publishes: each step checks a target, then writes it; overlapping runs
+# could both see "missing". Never cancel a run mid-publish.
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
 permissions:
   contents: write
   id-token: write
@@ -33,6 +39,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-node@v6
         with:
@@ -104,7 +112,9 @@ jobs:
           SERVER_NAME="$(node -p "require('./package.json').mcpName")"
           LOCAL_VERSION="${{ steps.version.outputs.local }}"
           if curl -fsSL "https://registry.modelcontextprotocol.io/v0.1/servers?search=$SERVER_NAME" -o registry.json; then
-            REGISTRY_VERSION="$(SERVER_NAME="$SERVER_NAME" node -p "const r = JSON.parse(require('fs').readFileSync('registry.json', 'utf8')).servers || []; const m = r.find(s => s.server && s.server.name === process.env.SERVER_NAME); m ? m.server.version : 'none'")"
+            # Ask whether THIS version is present: the registry lists every version, and the
+            # first entry with a matching name is not necessarily the newest one.
+            REGISTRY_VERSION="$(SERVER_NAME="$SERVER_NAME" LOCAL_VERSION="$LOCAL_VERSION" node -p "const r = JSON.parse(require('fs').readFileSync('registry.json', 'utf8')).servers || []; const ex = r.filter(s => s.server && s.server.name === process.env.SERVER_NAME); const hit = ex.find(s => s.server.version === process.env.LOCAL_VERSION); hit ? hit.server.version : (ex.map(s => s.server.version).join(',') || 'none')")"
           else
             REGISTRY_VERSION=unknown
             echo "Registry lookup failed — will attempt the publish and let it decide."
@@ -126,14 +136,39 @@ jobs:
           ./mcp-publisher login github-oidc
           ./mcp-publisher publish
 
+      # Gated on "the release is missing", never on "npm published in this run": a
+      # catch-up dispatch after an npm-lag failure must still finish the release.
       - name: Create GitHub release
-        if: steps.version.outputs.changed == 'true'
+        if: github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.local }}
         run: |
-          VERSION="${{ steps.version.outputs.local }}"
-          if gh release view "v$VERSION" >/dev/null 2>&1; then
+          # Only "release not found" means missing; any other gh failure stops the run
+          # rather than racing a create against a release that may already exist.
+          if VIEW="$(gh release view "v$VERSION" 2>&1)"; then
             echo "Release v$VERSION already exists — skipping."
-          else
-            gh release create "v$VERSION" --target "$GITHUB_SHA" --generate-notes
+            exit 0
+          elif ! printf '%s' "$VIEW" | grep -qi 'release not found'; then
+            echo "::error::Could not check for release v$VERSION: $VIEW"
+            exit 1
           fi
+          # npm can take a minute or more to serve a version it just accepted, so wait
+          # (bounded) rather than fail the normal path right after a publish.
+          PKG="$(node -p "require('./package.json').name")"
+          for attempt in $(seq 1 10); do
+            [ "$(npm view "$PKG@$VERSION" version 2>/dev/null)" = "$VERSION" ] && break
+            [ "$attempt" = 10 ] && { echo "::error::$PKG@$VERSION is still not on npm after ~5 minutes; not creating a GitHub release for an unpublished version. Re-run the workflow once npm serves it."; exit 1; }
+            sleep 30
+          done
+          # Target main's own commit that set this version (first parent, so a merge
+          # commit counts), not whatever HEAD is when a catch-up runs.
+          # Escape every ERE metacharacter in the version (dots, and "+" in build metadata).
+          VERSION_RE="$(printf '%s' "$VERSION" | sed 's/[][\\.*^$+?(){}|]/\\&/g')"
+          SETS_VERSION="\"version\"[[:space:]]*:[[:space:]]*\"$VERSION_RE\""
+          TARGET="$(git log -1 --first-parent --diff-merges=first-parent --no-patch --format=%H -G"$SETS_VERSION" -- package.json)"
+          if [ -z "$TARGET" ] || ! git merge-base --is-ancestor "$TARGET" HEAD; then
+            echo "::error::Could not find the commit on main that set version $VERSION in package.json."
+            exit 1
+          fi
+          gh release create "v$VERSION" --target "$TARGET" --generate-notes

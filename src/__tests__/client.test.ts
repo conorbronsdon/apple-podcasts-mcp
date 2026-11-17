@@ -11,7 +11,10 @@ import {
   ERROR_BAD_VENDOR,
   ERROR_DELAYED,
   ERROR_NO_DATA,
+  ERROR_NO_DATA_TEXT,
   ERROR_TOKEN_EXPIRED,
+  ERROR_TOKEN_EXPIRED_JSON,
+  ERROR_TOKEN_EXPIRED_TEXT,
   errorResponse,
   gzipReport,
   SHOW_WORLDWIDE_TSV,
@@ -264,6 +267,40 @@ describe("getVendors and viewToken", () => {
     expect(await new ReporterClient("tok", "87654321").viewToken()).toBe(
       "2027-01-24",
     );
+  });
+});
+
+describe("non-XML error envelopes under HTTP 200", () => {
+  it("throws on a plain-text error instead of parsing it as a vendor list", async () => {
+    stubFetch(() => textResponse(ERROR_TOKEN_EXPIRED_TEXT));
+    await expect(
+      new ReporterClient("tok", "87654321").getVendors(),
+    ).rejects.toBeInstanceOf(TokenExpiredError);
+  });
+
+  it("throws on a JSON error instead of parsing it as a vendor list", async () => {
+    stubFetch(() => textResponse(ERROR_TOKEN_EXPIRED_JSON));
+    await expect(
+      new ReporterClient("tok", "87654321").getVendors(),
+    ).rejects.toBeInstanceOf(TokenExpiredError);
+  });
+
+  it("treats a plain-text no-data error as a missing period, not a report", async () => {
+    stubFetch((n) =>
+      n === 0 ? textResponse(ERROR_NO_DATA_TEXT) : gzipReport(SHOW_WORLDWIDE_TSV),
+    );
+    const { reports, missing } = await new ReporterClient(
+      "tok",
+      "87654321",
+    ).getReportRange({
+      reportType: "apShowListeningWorldwide",
+      period: "Daily",
+      dates: ["20260727", "20260728"],
+    });
+    expect(missing).toEqual([
+      { date: "20260727", reason: "no report published for this period" },
+    ]);
+    expect(reports.map((r) => r.date)).toEqual(["20260728"]);
   });
 });
 

@@ -87,6 +87,16 @@ export const ERROR_NO_DATA = errorXml(213, "There were no sales for the date spe
 export const ERROR_DELAYED = errorXml(117, "Podcast reports are delayed");
 export const ERROR_BAD_DATE = errorXml(205, "Invalid date");
 
+/**
+ * The same envelopes in the two non-XML shapes `parseReporterError` reads.
+ * Hand-written to match those parsers, not captured from Apple.
+ */
+export const ERROR_TOKEN_EXPIRED_TEXT = "Error 123 - Your Access Token is expired\n";
+export const ERROR_NO_DATA_TEXT =
+  "Error 213 - There were no sales for the date specified\n";
+export const ERROR_TOKEN_EXPIRED_JSON =
+  '{"code":123,"message":"Your Access Token is expired"}';
+
 /** Sales.getVendors, Normal mode. */
 export const VENDORS_TEXT = "87654321\n87654399\n";
 

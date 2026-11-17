@@ -12,6 +12,7 @@ MCP server for Apple Podcasts Connect owner analytics over the Reporter protocol
 - `src/dates.ts` — Reporter date formatting and capped range expansion
 - `src/shape.ts` — flow-vs-level aggregation, episode rollup, trend series
 - `src/server.ts` — 4 tool handlers
+- `src/types.ts` — report type and period constants, shared report/range types
 - `src/__tests__/` — vitest, fixtures in `__tests__/fixtures/`
 
 ## Key constraints
@@ -24,6 +25,7 @@ MCP server for Apple Podcasts Connect owner analytics over the Reporter protocol
 - Listener counts are unique devices, not people. An engaged listener is a device that played at least 20 minutes or 40% of an episode — not a completion.
 - `account` goes in the request payload only when `APPLE_PODCASTS_ACCOUNT_ID` is set. Reporter 404s on an empty account field.
 - Tests must never call Apple. Stub `fetch`.
+- Every tool is read-only and declares `READ_ONLY_ANNOTATIONS` (`readOnlyHint: true`, `destructiveHint: false`, `idempotentHint: true`, `openWorldHint: true`) from `src/server.ts`. Enforced by `src/__tests__/annotations.test.ts`, which reads a real `tools/list`; a new tool without them fails CI.
 - Never commit a token, a vendor number, or a real report body.
 
 ## Development

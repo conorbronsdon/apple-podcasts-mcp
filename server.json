@@ -20,12 +20,12 @@
       "environmentVariables": [
         {
           "name": "APPLE_PODCASTS_ACCESS_TOKEN",
-          "description": "Reporter access token from Apple Podcasts Connect (Settings > Access Token). Expires 180 days after it is generated.",
+          "description": "Reporter access token, issued by Reporter's generateToken command. Requires an Apple Podcasters Program membership. Expires 180 days after it is generated.",
           "isRequired": true
         },
         {
           "name": "APPLE_PODCASTS_VENDOR_ID",
-          "description": "Vendor number from Apple Podcasts Connect Settings, e.g. 87654321",
+          "description": "Reporter vendor number (digits only, e.g. 87654321), issued with an Apple Podcasters Program membership. Not the account UUID under Podcasts Connect > Account > Details.",
           "isRequired": true
         },
         {

@@ -1,5 +1,6 @@
 import { gunzipSync } from "node:zlib";
 import {
+  isReporterErrorBody,
   mapReporterError,
   NoDataError,
   parseReporterError,
@@ -147,9 +148,10 @@ export class ReporterClient {
 
     const text = buffer.toString("utf-8");
 
-    // Reporter frequently returns an error document under HTTP 200. Anything
-    // that carries an <Error>/<Code> envelope is a failure, not a report.
-    if (/<Error>|<Code>\s*\d+\s*<\/Code>/i.test(text)) {
+    // Reporter frequently returns an error document under HTTP 200, as XML,
+    // JSON, or plain text depending on mode. Any of those is a failure, not a
+    // report — see `isReporterErrorBody`.
+    if (isReporterErrorBody(text)) {
       const { code, message } = parseReporterError(text);
       throw mapReporterError({
         code,
