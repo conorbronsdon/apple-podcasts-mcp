@@ -20,7 +20,7 @@ const SALES_URL =
 /** Reporter protocol version. `generateToken` auth requires 2.2 or later. */
 const REPORTER_VERSION = "2.2";
 
-const VERSION = "0.1.0";
+const VERSION = "0.2.1";
 
 /**
  * Client for Apple Podcasts Connect's Reporter service.
