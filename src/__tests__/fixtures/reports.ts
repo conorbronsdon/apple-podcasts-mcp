@@ -100,6 +100,28 @@ export const ERROR_TOKEN_EXPIRED_JSON =
 /** Sales.getVendors, Normal mode. */
 export const VENDORS_TEXT = "87654321\n87654399\n";
 
+/**
+ * A maintenance page served under HTTP 200 with no Reporter error code in it.
+ * Synthetic: the shape of a generic HTML outage page, not a captured Apple body.
+ */
+export const HTML_MAINTENANCE_PAGE =
+  "<!DOCTYPE html>\n<html><head><title>Service Unavailable</title></head><body><h1>We'll be back soon</h1><p>Scheduled maintenance is in progress.</p></body></html>\n";
+
+/**
+ * A block page that mirrors the rejected form field, token included. Synthetic,
+ * with an `example-` token, so the redaction of the quoted body can be pinned.
+ */
+export const HTML_BLOCK_PAGE_ECHOING_TOKEN =
+  '<html><body>Request blocked: jsonRequest={"accesstoken":"example-token-abc123"}</body></html>';
+
+/** An HTTP 200 HTML response with no gzip and no Reporter error envelope. */
+export function htmlResponse(body: string, status = 200): Response {
+  return new Response(body, {
+    status,
+    headers: { "content-type": "text/html; charset=utf-8" },
+  });
+}
+
 /** Sales.viewToken, Normal mode. */
 export const VIEW_TOKEN_TEXT =
   "Your access token is active and expires on 2027-01-24.\n";

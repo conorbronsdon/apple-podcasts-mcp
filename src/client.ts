@@ -4,6 +4,7 @@ import {
   mapReporterError,
   NoDataError,
   parseReporterError,
+  redactSecrets,
   ReporterError,
 } from "./errors.js";
 import { parseTsv } from "./tsv.js";
@@ -225,13 +226,32 @@ export class ReporterClient {
    * `Sales.getVendors` — the vendor numbers this token can read. Used by the
    * access check: it is the cheapest call that proves the token works and
    * proves the configured vendor number is one of the token's own.
+   *
+   * A non-empty body with no vendor number in it is not a vendor list. An
+   * HTML maintenance page, a proxy block page, or a captive portal can all
+   * arrive under HTTP 200 without a Reporter error code, and filtering one of
+   * them down to `[]` would let the access check report a working token for a
+   * request that never reached Reporter. That case throws.
+   *
+   * An empty body still returns `[]`. What Reporter sends for a token with no
+   * vendor numbers is undocumented and unconfirmed, so this keeps the earlier
+   * behaviour rather than guessing; the access check then leaves
+   * `configuredVendorIsAuthorized` unset instead of claiming either answer.
    */
   async getVendors(): Promise<string[]> {
     const text = await this.post("Sales.getVendors", { mode: "Normal" });
-    return text
+    const vendors = text
       .split(/[\r\n,]+/)
       .map((s) => s.trim())
       .filter((s) => /^\d+$/.test(s));
+    if (vendors.length === 0 && text.trim() !== "") {
+      throw new ReporterError(
+        0,
+        `Reporter answered with a body that is not a vendor list and carries no Reporter error code, so the token could not be verified. This is usually an HTML maintenance page, a proxy or firewall block page, or a captive portal rather than Apple's Reporter service. Retry later, or from a network that reaches reportingitc-reporter.apple.com directly. Body began: ${redactSecrets(text.trim()).slice(0, 200)}`,
+        "Sales.getVendors",
+      );
+    }
+    return vendors;
   }
 
   /**

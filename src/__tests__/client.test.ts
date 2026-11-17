@@ -17,6 +17,9 @@ import {
   ERROR_TOKEN_EXPIRED_TEXT,
   errorResponse,
   gzipReport,
+  HTML_BLOCK_PAGE_ECHOING_TOKEN,
+  HTML_MAINTENANCE_PAGE,
+  htmlResponse,
   SHOW_WORLDWIDE_TSV,
   textResponse,
   VENDORS_TEXT,
@@ -301,6 +304,53 @@ describe("non-XML error envelopes under HTTP 200", () => {
       { date: "20260727", reason: "no report published for this period" },
     ]);
     expect(reports.map((r) => r.date)).toEqual(["20260728"]);
+  });
+});
+
+describe("getVendors on a body that is not a vendor list", () => {
+  const NOT_A_VENDOR_LIST =
+    "Apple Reporter error (0) on Sales.getVendors: Reporter answered with a body that is not a vendor list and carries no Reporter error code, so the token could not be verified. This is usually an HTML maintenance page, a proxy or firewall block page, or a captive portal rather than Apple's Reporter service. Retry later, or from a network that reaches reportingitc-reporter.apple.com directly. Body began: ";
+
+  it("throws on an HTML maintenance page under HTTP 200 instead of returning []", async () => {
+    stubFetch(() => htmlResponse(HTML_MAINTENANCE_PAGE));
+    const err = await new ReporterClient("tok", "87654321")
+      .getVendors()
+      .then(
+        () => undefined,
+        (e: unknown) => e,
+      );
+    expect(err).toBeInstanceOf(ReporterError);
+    const re = err as ReporterError;
+    expect(re.code).toBe(0);
+    expect(re.command).toBe("Sales.getVendors");
+    expect(re.message).toBe(
+      NOT_A_VENDOR_LIST + HTML_MAINTENANCE_PAGE.trim().slice(0, 200),
+    );
+  });
+
+  it("redacts a token mirrored back in the body it quotes", async () => {
+    stubFetch(() => htmlResponse(HTML_BLOCK_PAGE_ECHOING_TOKEN));
+    const err = (await new ReporterClient("tok", "87654321")
+      .getVendors()
+      .catch((e: unknown) => e)) as ReporterError;
+    expect(err.message).toBe(
+      NOT_A_VENDOR_LIST + "<html><body>Request blocked: jsonRequest=[redacted]",
+    );
+    expect(err.message).not.toContain("example-token-abc123");
+  });
+
+  it("still returns the exact vendor numbers from a CRLF- or comma-separated list", async () => {
+    stubFetch(() => textResponse("87654321\r\n87654399, 87650000\r\n"));
+    expect(await new ReporterClient("tok", "87654321").getVendors()).toEqual([
+      "87654321",
+      "87654399",
+      "87650000",
+    ]);
+  });
+
+  it("keeps an empty body as an empty list: Reporter's zero-vendor answer is unconfirmed", async () => {
+    stubFetch(() => textResponse(" \n"));
+    expect(await new ReporterClient("tok", "87654321").getVendors()).toEqual([]);
   });
 });
 

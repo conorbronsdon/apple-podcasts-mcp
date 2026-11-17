@@ -10,6 +10,8 @@ import {
   errorResponse,
   FOLLOWERS_ONLY_TSV,
   gzipReport,
+  HTML_MAINTENANCE_PAGE,
+  htmlResponse,
   RENAMED_COLUMNS_TSV,
   SHOW_WORLDWIDE_TSV,
   SHOW_WORLDWIDE_TSV_DAY2,
@@ -412,6 +414,48 @@ describe("apple_podcasts_check_access", () => {
     );
     expect(res.isError).toBe(true);
     expect(res.text).toMatch(/^Apple Reporter error \(123\) on Sales\.getVendors: Access token is expired\./);
+  });
+
+  it("reports an HTML page under HTTP 200 as an error, not tokenWorks", async () => {
+    const bodies = stubFetch(() => htmlResponse(HTML_MAINTENANCE_PAGE));
+    const res = await callTool(
+      createServer(client()),
+      "apple_podcasts_check_access",
+    );
+    expect(res.isError).toBe(true);
+    expect(res.data).toBeUndefined();
+    expect(res.text).not.toContain("tokenWorks");
+    expect(res.text.split(" Body began: ")[0]).toBe(
+      "Apple Reporter error (0) on Sales.getVendors: Reporter answered with a body that is not a vendor list and carries no Reporter error code, so the token could not be verified. This is usually an HTML maintenance page, a proxy or firewall block page, or a captive portal rather than Apple's Reporter service. Retry later, or from a network that reaches reportingitc-reporter.apple.com directly.",
+    );
+    // Stops at getVendors: viewToken is never asked to vouch for the token.
+    expect(bodies.map(queryInputOf)).toEqual([
+      "[p=Reporter.properties, Sales.getVendors]",
+    ]);
+  });
+
+  it("reports tokenWorks for a real vendor list and an empty body alike", async () => {
+    stubFetch((n) => textResponse(n === 0 ? "87654321\n" : VIEW_TOKEN_TEXT));
+    const listed = await callTool(
+      createServer(client()),
+      "apple_podcasts_check_access",
+    );
+    expect(listed.isError).toBe(false);
+    expect(listed.data.tokenWorks).toBe(true);
+    expect(listed.data.authorizedVendors).toEqual(["87654321"]);
+    expect(listed.data.configuredVendorIsAuthorized).toBe(true);
+
+    // Empty body: unchanged behaviour. What Reporter sends for a token with no
+    // vendors is unconfirmed, so the check makes no claim about the vendor.
+    stubFetch((n) => textResponse(n === 0 ? "" : VIEW_TOKEN_TEXT));
+    const empty = await callTool(
+      createServer(client()),
+      "apple_podcasts_check_access",
+    );
+    expect(empty.isError).toBe(false);
+    expect(empty.data.tokenWorks).toBe(true);
+    expect(empty.data.authorizedVendors).toEqual([]);
+    expect(empty.data.configuredVendorIsAuthorized).toBeUndefined();
   });
 
   it("still succeeds when viewToken is unavailable for the account", async () => {
