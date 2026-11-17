@@ -259,6 +259,50 @@ describe("apple_podcasts_summary", () => {
     expect(res.isError).toBe(true);
     expect(res.text).toMatch(/Could not parse start date/);
   });
+
+  it("rejects an impossible end date before calling Apple, not a rolled-over one", async () => {
+    // 2026-04-31 does not exist. Rolled over it was 2026-05-01, a date the
+    // caller never asked for, and the tool fetched it.
+    const bodies = stubFetch(() => gzipReport(SHOW_WORLDWIDE_TSV));
+    const res = await callTool(createServer(client()), "apple_podcasts_summary", {
+      start: "2026-04-30",
+      end: "2026-04-31",
+    });
+    expect(res.isError).toBe(true);
+    expect(res.text).toBe(
+      'Could not parse end date "2026-04-31". Use a calendar date as YYYY-MM-DD (or YYYY-MM for a monthly period).',
+    );
+    expect(bodies).toHaveLength(0);
+  });
+
+  it("still requests exactly the named dates for a real month-end range", async () => {
+    const bodies = stubFetch(() => gzipReport(SHOW_WORLDWIDE_TSV));
+    const res = await callTool(createServer(client()), "apple_podcasts_summary", {
+      start: "2026-04-29",
+      end: "2026-04-30",
+    });
+    expect(res.isError).toBe(false);
+    expect(res.data.requestedRange).toEqual({ start: "20260429", end: "20260430" });
+    expect(bodies.map(queryInputOf)).toEqual([
+      "[p=Reporter.properties, Sales.getReport, 87654321,apShowListeningWorldwide,Summary,Daily,20260429]",
+      "[p=Reporter.properties, Sales.getReport, 87654321,apShowListeningWorldwide,Summary,Daily,20260430]",
+    ]);
+  });
+
+  it("rejects an impossible day on a Monthly range instead of shifting the month", async () => {
+    // Rolled over, 2026-02-30 became March and the range gained a month.
+    const bodies = stubFetch(() => gzipReport(SHOW_WORLDWIDE_TSV));
+    const res = await callTool(createServer(client()), "apple_podcasts_summary", {
+      period: "Monthly",
+      start: "2026-01",
+      end: "2026-02-30",
+    });
+    expect(res.isError).toBe(true);
+    expect(res.text).toBe(
+      'Could not parse end date "2026-02-30". Use a calendar date as YYYY-MM-DD (or YYYY-MM for a monthly period).',
+    );
+    expect(bodies).toHaveLength(0);
+  });
 });
 
 describe("apple_podcasts_episodes", () => {

@@ -11,13 +11,25 @@ export function formatReporterDate(date: Date, period: Period): string {
   return `${y}${m}${d}`;
 }
 
-/** Parse YYYY-MM-DD, YYYYMMDD, YYYY-MM, or YYYYMM into a UTC Date. */
+/**
+ * Parse YYYY-MM-DD, YYYYMMDD, YYYY-MM, or YYYYMM into a UTC Date.
+ *
+ * A day that does not exist in its month is rejected, not rolled over. V8's
+ * Date parser accepts any day up to 31 and carries the overflow into the next
+ * month, so "2026-02-30" would otherwise become March 2 and "2026-04-31" May 1:
+ * a Daily range would request a date the caller never named, and a Monthly
+ * range would request the wrong month.
+ */
 export function parseIsoish(value: string): Date | undefined {
   const compact = value.replace(/-/g, "");
   if (/^\d{8}$/.test(compact)) {
     const iso = `${compact.slice(0, 4)}-${compact.slice(4, 6)}-${compact.slice(6, 8)}T00:00:00Z`;
     const d = new Date(iso);
-    return Number.isNaN(d.getTime()) ? undefined : d;
+    if (Number.isNaN(d.getTime())) return undefined;
+    return d.getUTCMonth() + 1 === Number(compact.slice(4, 6)) &&
+      d.getUTCDate() === Number(compact.slice(6, 8))
+      ? d
+      : undefined;
   }
   if (/^\d{6}$/.test(compact)) {
     const iso = `${compact.slice(0, 4)}-${compact.slice(4, 6)}-01T00:00:00Z`;
@@ -104,7 +116,7 @@ export function resolveRange(args: {
   const end = args.end ? parseIsoish(args.end) : defaultEnd;
   if (!end) {
     throw new Error(
-      `Could not parse end date "${args.end}". Use YYYY-MM-DD (or YYYY-MM for a monthly period).`,
+      `Could not parse end date "${args.end}". Use a calendar date as YYYY-MM-DD (or YYYY-MM for a monthly period).`,
     );
   }
 
@@ -118,7 +130,7 @@ export function resolveRange(args: {
     : new Date(end.getTime() - (defaultSpanDays - 1) * DAY_MS);
   if (!start) {
     throw new Error(
-      `Could not parse start date "${args.start}". Use YYYY-MM-DD (or YYYY-MM for a monthly period).`,
+      `Could not parse start date "${args.start}". Use a calendar date as YYYY-MM-DD (or YYYY-MM for a monthly period).`,
     );
   }
 
