@@ -10,6 +10,8 @@ import {
   errorResponse,
   FOLLOWERS_ONLY_TSV,
   gzipReport,
+  HTML_MAINTENANCE_PAGE,
+  htmlResponse,
   RENAMED_COLUMNS_TSV,
   SHOW_WORLDWIDE_TSV,
   SHOW_WORLDWIDE_TSV_DAY2,
@@ -259,6 +261,50 @@ describe("apple_podcasts_summary", () => {
     expect(res.isError).toBe(true);
     expect(res.text).toMatch(/Could not parse start date/);
   });
+
+  it("rejects an impossible end date before calling Apple, not a rolled-over one", async () => {
+    // 2026-04-31 does not exist. Rolled over it was 2026-05-01, a date the
+    // caller never asked for, and the tool fetched it.
+    const bodies = stubFetch(() => gzipReport(SHOW_WORLDWIDE_TSV));
+    const res = await callTool(createServer(client()), "apple_podcasts_summary", {
+      start: "2026-04-30",
+      end: "2026-04-31",
+    });
+    expect(res.isError).toBe(true);
+    expect(res.text).toBe(
+      'Could not parse end date "2026-04-31". Use a calendar date as YYYY-MM-DD (or YYYY-MM for a monthly period).',
+    );
+    expect(bodies).toHaveLength(0);
+  });
+
+  it("still requests exactly the named dates for a real month-end range", async () => {
+    const bodies = stubFetch(() => gzipReport(SHOW_WORLDWIDE_TSV));
+    const res = await callTool(createServer(client()), "apple_podcasts_summary", {
+      start: "2026-04-29",
+      end: "2026-04-30",
+    });
+    expect(res.isError).toBe(false);
+    expect(res.data.requestedRange).toEqual({ start: "20260429", end: "20260430" });
+    expect(bodies.map(queryInputOf)).toEqual([
+      "[p=Reporter.properties, Sales.getReport, 87654321,apShowListeningWorldwide,Summary,Daily,20260429]",
+      "[p=Reporter.properties, Sales.getReport, 87654321,apShowListeningWorldwide,Summary,Daily,20260430]",
+    ]);
+  });
+
+  it("rejects an impossible day on a Monthly range instead of shifting the month", async () => {
+    // Rolled over, 2026-02-30 became March and the range gained a month.
+    const bodies = stubFetch(() => gzipReport(SHOW_WORLDWIDE_TSV));
+    const res = await callTool(createServer(client()), "apple_podcasts_summary", {
+      period: "Monthly",
+      start: "2026-01",
+      end: "2026-02-30",
+    });
+    expect(res.isError).toBe(true);
+    expect(res.text).toBe(
+      'Could not parse end date "2026-02-30". Use a calendar date as YYYY-MM-DD (or YYYY-MM for a monthly period).',
+    );
+    expect(bodies).toHaveLength(0);
+  });
 });
 
 describe("apple_podcasts_episodes", () => {
@@ -412,6 +458,50 @@ describe("apple_podcasts_check_access", () => {
     );
     expect(res.isError).toBe(true);
     expect(res.text).toMatch(/^Apple Reporter error \(123\) on Sales\.getVendors: Access token is expired\./);
+  });
+
+  it("reports an HTML page under HTTP 200 as an error, not tokenWorks", async () => {
+    const bodies = stubFetch(() => htmlResponse(HTML_MAINTENANCE_PAGE));
+    const res = await callTool(
+      createServer(client()),
+      "apple_podcasts_check_access",
+    );
+    expect(res.isError).toBe(true);
+    expect(res.data).toBeUndefined();
+    expect(res.text).not.toContain("tokenWorks");
+    expect(res.text.split(" Body began: ")[0]).toBe(
+      "Apple Reporter error (0) on Sales.getVendors: Reporter answered with a body that is not a vendor list and carries no Reporter error code, so the token could not be verified. Possible causes: an HTML maintenance page, a proxy, firewall or captive-portal page, or a Reporter reply this server does not recognise. Retry later, or from a network that reaches reportingitc-reporter.apple.com directly; if it persists, check the token in App Store Connect.",
+    );
+    // Stops at getVendors: viewToken is never asked to vouch for the token.
+    expect(bodies.map(queryInputOf)).toEqual([
+      "[p=Reporter.properties, Sales.getVendors]",
+    ]);
+  });
+
+  it("reports tokenWorks for a real vendor list and an empty body alike", async () => {
+    stubFetch((n) => textResponse(n === 0 ? "87654321\n" : VIEW_TOKEN_TEXT));
+    const listed = await callTool(
+      createServer(client()),
+      "apple_podcasts_check_access",
+    );
+    expect(listed.isError).toBe(false);
+    expect(listed.data.tokenWorks).toBe(true);
+    expect(listed.data.authorizedVendors).toEqual(["87654321"]);
+    expect(listed.data.configuredVendorIsAuthorized).toBe(true);
+
+    // Empty body: unchanged behaviour. What Reporter sends for a token with no
+    // vendors is unconfirmed, so the check makes no claim about the vendor.
+    stubFetch((n) => textResponse(n === 0 ? "" : VIEW_TOKEN_TEXT));
+    const empty = await callTool(
+      createServer(client()),
+      "apple_podcasts_check_access",
+    );
+    expect(empty.isError).toBe(false);
+    expect(empty.data.tokenWorks).toBe(true);
+    expect(empty.data.authorizedVendors).toEqual([]);
+    expect(empty.data.configuredVendorIsAuthorized).toBeUndefined();
+    // viewToken is still consulted, so the expiry date is still reported.
+    expect(empty.data.tokenExpires).toBe("2027-01-24");
   });
 
   it("still succeeds when viewToken is unavailable for the account", async () => {
