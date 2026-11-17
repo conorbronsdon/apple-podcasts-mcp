@@ -12,6 +12,7 @@ MCP server for Apple Podcasts Connect owner analytics over the Reporter protocol
 - `src/dates.ts` — Reporter date formatting and capped range expansion
 - `src/shape.ts` — flow-vs-level aggregation, episode rollup, trend series
 - `src/server.ts` — 4 tool handlers
+- `src/types.ts` — report type and period constants, shared report/range types
 - `src/__tests__/` — vitest, fixtures in `__tests__/fixtures/`
 
 ## Key constraints
